@@ -1,26 +1,51 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../models/item_model.dart';
 import '../repositories/item_repository.dart';
 
-// Repository Provider
-final itemRepositoryProvider = Provider<ItemRepository>((ref) {
-  return ItemRepositoryImpl();
-});
+part 'item_provider.g.dart';
 
-// Items State Provider (AsyncValue for loading states)
-final itemsProvider = FutureProvider<List<ItemModel>>((ref) async {
+// Repository Provider
+@riverpod
+ItemRepository itemRepository(Ref ref) {
+  return ItemRepositoryImpl();
+}
+
+// Items Provider (AsyncValue for loading states)
+@riverpod
+Future<List<ItemModel>> items(Ref ref) async {
   final repository = ref.watch(itemRepositoryProvider);
   return await repository.getItems();
-});
+}
 
 // Selected Item Provider (for detail screen)
-final selectedItemProvider = StateProvider<ItemModel?>((ref) => null);
+@riverpod
+class SelectedItem extends _$SelectedItem {
+  @override
+  ItemModel? build() => null;
+
+  void select(ItemModel? item) {
+    state = item;
+  }
+
+  void clear() {
+    state = null;
+  }
+}
 
 // Current Carousel Index Provider
-final currentCarouselIndexProvider = StateProvider<int>((ref) => 0);
+@riverpod
+class CurrentCarouselIndex extends _$CurrentCarouselIndex {
+  @override
+  int build() => 0;
+
+  void update(int index) {
+    state = index;
+  }
+}
 
 // Filtered Items Provider (by category)
-final filteredItemsProvider = Provider.family<List<ItemModel>, String?>((ref, category) {
+@riverpod
+List<ItemModel> filteredItems(Ref ref, String? category) {
   final itemsAsyncValue = ref.watch(itemsProvider);
 
   return itemsAsyncValue.when(
@@ -31,18 +56,20 @@ final filteredItemsProvider = Provider.family<List<ItemModel>, String?>((ref, ca
       return items.where((item) => item.category == category).toList();
     },
     loading: () => [],
-    error: (_, __) => [],
+    error: (_, _) => [],
   );
-});
+}
 
 // Item Detail Provider (by id)
-final itemDetailProvider = FutureProvider.family<ItemModel?, String>((ref, id) async {
+@riverpod
+Future<ItemModel?> itemDetail(Ref ref, String id) async {
   final repository = ref.watch(itemRepositoryProvider);
   return await repository.getItemById(id);
-});
+}
 
 // Categories Provider
-final categoriesProvider = Provider<List<String>>((ref) {
+@riverpod
+List<String> categories(Ref ref) {
   final itemsAsyncValue = ref.watch(itemsProvider);
 
   return itemsAsyncValue.when(
@@ -52,9 +79,21 @@ final categoriesProvider = Provider<List<String>>((ref) {
       return categories;
     },
     loading: () => [],
-    error: (_, __) => [],
+    error: (_, _) => [],
   );
-});
+}
 
 // Selected Category Provider
-final selectedCategoryProvider = StateProvider<String?>((ref) => null);
+@riverpod
+class SelectedCategory extends _$SelectedCategory {
+  @override
+  String? build() => null;
+
+  void select(String? category) {
+    state = category;
+  }
+
+  void clear() {
+    state = null;
+  }
+}
