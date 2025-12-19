@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import '../providers/item_provider.dart';
 import '../models/item_model.dart';
+import '../config/theme_config.dart';
 import 'detail_screen.dart';
 
 class CarouselListScreen extends ConsumerWidget {
@@ -15,24 +16,53 @@ class CarouselListScreen extends ConsumerWidget {
     final selectedCategory = ref.watch(selectedCategoryProvider);
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
-        title: const Text(
-          'グルメギャラリー',
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-          ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.restaurant_menu,
+                color: AppTheme.primaryColor,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'グルメギャラリー',
+              style: TextStyle(
+                color: AppTheme.textPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+          ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search, color: AppTheme.textPrimary),
+            onPressed: () {
+              // 検索機能（実装例）
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('検索機能は開発中です')),
+              );
+            },
+          ),
+        ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
+          preferredSize: const Size.fromHeight(70),
           child: _CategoryFilter(
             categories: categories,
             selectedCategory: selectedCategory,
             onCategorySelected: (category) {
-              ref.read(selectedCategoryProvider.notifier).state = category;
+              ref.read(selectedCategoryProvider.notifier).select(category);
             },
           ),
         ),
@@ -44,10 +74,21 @@ class CarouselListScreen extends ConsumerWidget {
               : items.where((item) => item.category == selectedCategory).toList();
 
           if (filteredItems.isEmpty) {
-            return const Center(
-              child: Text(
-                'メニューが見つかりません',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.restaurant,
+                    size: 64,
+                    color: AppTheme.textLight,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'メニューが見つかりません',
+                    style: AppTheme.body1.copyWith(color: AppTheme.textLight),
+                  ),
+                ],
               ),
             );
           }
@@ -56,32 +97,43 @@ class CarouselListScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 20),
+                const SizedBox(height: AppTheme.spacingLarge),
                 _FeaturedCarousel(items: filteredItems),
-                const SizedBox(height: 30),
+                const SizedBox(height: AppTheme.spacingXLarge),
                 _GridSection(items: filteredItems),
-                const SizedBox(height: 20),
+                const SizedBox(height: AppTheme.spacingLarge),
               ],
             ),
           );
         },
         loading: () => const Center(
-          child: CircularProgressIndicator(),
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+          ),
         ),
         error: (error, stack) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 16),
+              Icon(
+                Icons.error_outline,
+                size: 64,
+                color: AppTheme.primaryColor,
+              ),
+              const SizedBox(height: AppTheme.spacingMedium),
               Text(
                 'エラーが発生しました',
-                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                style: AppTheme.heading3.copyWith(color: AppTheme.textSecondary),
               ),
-              const SizedBox(height: 8),
-              ElevatedButton(
+              const SizedBox(height: AppTheme.spacingSmall),
+              ElevatedButton.icon(
                 onPressed: () => ref.refresh(itemsProvider),
-                child: const Text('再試行'),
+                icon: const Icon(Icons.refresh),
+                label: const Text('再試行'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: Colors.white,
+                ),
               ),
             ],
           ),
@@ -105,71 +157,115 @@ class _CategoryFilter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 60,
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      height: 70,
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSmall),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          top: BorderSide(color: Color(0xFFF0F0F0), width: 1),
+        ),
+      ),
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMedium),
         children: [
           _CategoryChip(
             label: 'すべて',
+            icon: Icons.apps,
             isSelected: selectedCategory == null,
             onTap: () => onCategorySelected(null),
+            color: AppTheme.textPrimary,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppTheme.spacingSmall),
           ...categories.map((category) => Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.only(right: AppTheme.spacingSmall),
             child: _CategoryChip(
               label: category,
+              icon: _getCategoryIcon(category),
               isSelected: selectedCategory == category,
               onTap: () => onCategorySelected(category),
+              color: AppTheme.getCategoryColor(category),
             ),
           )),
         ],
       ),
     );
   }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category) {
+      case '和食':
+        return Icons.rice_bowl;
+      case '洋食':
+        return Icons.restaurant;
+      case '中華':
+        return Icons.ramen_dining;
+      case 'イタリアン':
+        return Icons.local_pizza;
+      case 'エスニック':
+        return Icons.travel_explore;
+      case 'カフェ':
+        return Icons.coffee;
+      case 'デザート':
+        return Icons.cake;
+      default:
+        return Icons.restaurant_menu;
+    }
+  }
 }
 
 class _CategoryChip extends StatelessWidget {
   final String label;
+  final IconData icon;
   final bool isSelected;
   final VoidCallback onTap;
+  final Color color;
 
   const _CategoryChip({
     required this.label,
+    required this.icon,
     required this.isSelected,
     required this.onTap,
+    required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.blue : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? Colors.blue : Colors.grey[300]!,
-          ),
-          boxShadow: isSelected
-              ? [
-            BoxShadow(
-              color: Colors.blue.withOpacity(0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ]
-              : [],
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.spacingMedium,
+          vertical: AppTheme.spacingSmall,
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.black87,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        decoration: BoxDecoration(
+          color: isSelected ? color : Colors.white,
+          borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+          border: Border.all(
+            color: isSelected ? color : const Color(0xFFE0E0E0),
+            width: 2,
           ),
+          boxShadow: isSelected ? AppTheme.softShadow : [],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? Colors.white : color,
+              size: 18,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : AppTheme.textPrimary,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                fontSize: 14,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -188,43 +284,56 @@ class _FeaturedCarousel extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            '本日のおすすめ料理',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMedium),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.accentColor.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.star,
+                  color: AppTheme.accentColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                '本日のおすすめ料理',
+                style: AppTheme.heading2,
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppTheme.spacingMedium),
         CarouselSlider.builder(
           itemCount: items.length,
           itemBuilder: (context, index, realIndex) {
             final item = items[index];
-            return _CarouselCard(item: item, index: index);
+            return _CarouselCard(item: item);
           },
           options: CarouselOptions(
-            height: 280,
+            height: 320,
             aspectRatio: 16 / 9,
-            viewportFraction: 0.85,
+            viewportFraction: 0.87,
             initialPage: 0,
             enableInfiniteScroll: true,
             autoPlay: true,
-            autoPlayInterval: const Duration(seconds: 4),
-            autoPlayAnimationDuration: const Duration(milliseconds: 800),
-            autoPlayCurve: Curves.fastOutSlowIn,
+            autoPlayInterval: const Duration(seconds: 5),
+            autoPlayAnimationDuration: const Duration(milliseconds: 1000),
+            autoPlayCurve: Curves.easeInOutCubic,
             enlargeCenterPage: true,
-            enlargeFactor: 0.25,
+            enlargeFactor: 0.18,
             scrollDirection: Axis.horizontal,
             onPageChanged: (index, reason) {
-              ref.read(currentCarouselIndexProvider.notifier).state = index;
+              ref.read(currentCarouselIndexProvider.notifier).update(index);
             },
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppTheme.spacingMedium),
         _CarouselIndicator(
           itemCount: items.length,
           currentIndex: currentIndex,
@@ -236,12 +345,8 @@ class _FeaturedCarousel extends ConsumerWidget {
 
 class _CarouselCard extends StatelessWidget {
   final ItemModel item;
-  final int index;
 
-  const _CarouselCard({
-    required this.item,
-    required this.index,
-  });
+  const _CarouselCard({required this.item});
 
   @override
   Widget build(BuildContext context) {
@@ -257,41 +362,45 @@ class _CarouselCard extends StatelessWidget {
       child: Hero(
         tag: 'item-${item.id}',
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 5),
+          margin: const EdgeInsets.symmetric(horizontal: 6),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 10,
-                offset: const Offset(0, 5),
-              ),
-            ],
+            borderRadius: BorderRadius.circular(AppTheme.radiusXLarge),
+            boxShadow: AppTheme.cardShadow,
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(AppTheme.radiusXLarge),
             child: Stack(
               fit: StackFit.expand,
               children: [
+                // 画像
                 Image.network(
                   item.imageUrl,
                   fit: BoxFit.cover,
                   loadingBuilder: (context, child, loadingProgress) {
                     if (loadingProgress == null) return child;
                     return Container(
-                      color: Colors.grey[300],
-                      child: const Center(
-                        child: CircularProgressIndicator(),
+                      color: AppTheme.backgroundColor,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                              : null,
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            AppTheme.primaryColor,
+                          ),
+                        ),
                       ),
                     );
                   },
                   errorBuilder: (context, error, stackTrace) {
                     return Container(
-                      color: Colors.grey[300],
+                      color: AppTheme.backgroundColor,
                       child: const Icon(Icons.error, size: 48),
                     );
                   },
                 ),
+                // グラデーションオーバーレイ
                 Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -301,71 +410,183 @@ class _CarouselCard extends StatelessWidget {
                         Colors.transparent,
                         Colors.black.withOpacity(0.7),
                       ],
+                      stops: const [0.4, 1.0],
                     ),
                   ),
                 ),
+                // 情報
                 Positioned(
-                  bottom: 20,
-                  left: 20,
-                  right: 20,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppTheme.spacingLarge),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // タグと評価
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.getCategoryColor(item.category),
+                                borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.restaurant_menu,
+                                    color: Colors.white,
+                                    size: 14,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    item.category,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.accentColor,
+                                borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.star,
+                                    color: Colors.white,
+                                    size: 14,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    item.rating.toString(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (item.isSpicy) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                                ),
+                                child: const Icon(
+                                  Icons.local_fire_department,
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
-                        decoration: BoxDecoration(
-                          color: Colors.blue,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          item.category,
+                        const SizedBox(height: 12),
+                        // タイトル
+                        Text(
+                          item.title,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 12,
+                            fontSize: 22,
                             fontWeight: FontWeight.bold,
+                            height: 1.2,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        item.title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.star,
-                            color: Colors.amber,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            item.rating.toString(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
+                        const SizedBox(height: 8),
+                        // 詳細情報
+                        Row(
+                          children: [
+                            _InfoChip(
+                              icon: Icons.access_time,
+                              text: '${item.cookingTime}分',
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                            const SizedBox(width: 8),
+                            _InfoChip(
+                              icon: Icons.local_fire_department_outlined,
+                              text: '${item.calories}kcal',
+                            ),
+                            const SizedBox(width: 8),
+                            _InfoChip(
+                              icon: Icons.attach_money,
+                              text: item.formattedPrice,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _InfoChip({
+    required this.icon,
+    required this.text,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: Colors.white,
+            size: 12,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -386,13 +607,16 @@ class _CarouselIndicator extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(
         itemCount,
-            (index) => Container(
-          width: currentIndex == index ? 24 : 8,
+            (index) => AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          width: currentIndex == index ? 28 : 8,
           height: 8,
           margin: const EdgeInsets.symmetric(horizontal: 4),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(4),
-            color: currentIndex == index ? Colors.blue : Colors.grey[400],
+            color: currentIndex == index
+                ? AppTheme.primaryColor
+                : AppTheme.textLight,
           ),
         ),
       ),
@@ -410,28 +634,52 @@ class _GridSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            'すべてのメニュー',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMedium),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.secondaryColor.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.grid_view,
+                      color: AppTheme.secondaryColor,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'すべてのメニュー',
+                    style: AppTheme.heading2,
+                  ),
+                ],
+              ),
+              Text(
+                '${items.length}品',
+                style: AppTheme.body2.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppTheme.spacingMedium),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMedium),
           child: GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 0.75,
+              crossAxisSpacing: AppTheme.spacingMedium,
+              mainAxisSpacing: AppTheme.spacingMedium,
+              childAspectRatio: 0.70,
             ),
             itemCount: items.length,
             itemBuilder: (context, index) {
@@ -465,99 +713,167 @@ class _GridCard extends StatelessWidget {
         tag: 'grid-item-${item.id}',
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
             color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            boxShadow: AppTheme.cardShadow,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 画像部分
               Expanded(
-                flex: 3,
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(16),
-                  ),
-                  child: Image.network(
-                    item.imageUrl,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        color: Colors.grey[300],
-                        child: const Center(
-                          child: CircularProgressIndicator(),
+                flex: 5,
+                child: Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(AppTheme.radiusLarge),
+                      ),
+                      child: Image.network(
+                        item.imageUrl,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            color: AppTheme.backgroundColor,
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppTheme.primaryColor,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: AppTheme.backgroundColor,
+                            child: const Icon(Icons.error),
+                          );
+                        },
+                      ),
+                    ),
+                    // 評価バッジ
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
                         ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Colors.grey[300],
-                        child: const Icon(Icons.error),
-                      );
-                    },
-                  ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.accentColor,
+                          borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                          boxShadow: AppTheme.softShadow,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.star,
+                              color: Colors.white,
+                              size: 12,
+                            ),
+                            const SizedBox(width: 2),
+                            Text(
+                              item.rating.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // 辛さマーク
+                    if (item.isSpicy)
+                      Positioned(
+                        top: 8,
+                        left: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                            boxShadow: AppTheme.softShadow,
+                          ),
+                          child: const Icon(
+                            Icons.local_fire_department,
+                            color: Colors.white,
+                            size: 12,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
+              // 情報部分
               Expanded(
-                flex: 2,
+                flex: 4,
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // カテゴリー
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.getCategoryColor(item.category).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                        ),
+                        child: Text(
+                          item.category,
+                          style: TextStyle(
+                            color: AppTheme.getCategoryColor(item.category),
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      // タイトル
                       Text(
                         item.title,
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
+                          height: 1.2,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const Spacer(),
+                      // 価格と時間
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              item.category,
-                              style: const TextStyle(
-                                color: Colors.blue,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
+                          Text(
+                            item.formattedPrice,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.primaryColor,
                             ),
                           ),
                           Row(
                             children: [
                               const Icon(
-                                Icons.star,
-                                color: Colors.amber,
-                                size: 14,
+                                Icons.access_time,
+                                size: 12,
+                                color: AppTheme.textSecondary,
                               ),
-                              const SizedBox(width: 2),
+                              const SizedBox(width: 4),
                               Text(
-                                item.rating.toString(),
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                '${item.cookingTime}分',
+                                style: AppTheme.caption,
                               ),
                             ],
                           ),
