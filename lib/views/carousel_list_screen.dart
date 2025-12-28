@@ -5,6 +5,7 @@ import '../providers/item_provider.dart';
 import '../models/item_model.dart';
 import '../config/theme_config.dart';
 import 'detail_screen.dart';
+import 'search_screen.dart';
 
 class CarouselListScreen extends ConsumerWidget {
   const CarouselListScreen({super.key});
@@ -49,9 +50,11 @@ class CarouselListScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.search, color: AppTheme.textPrimary),
             onPressed: () {
-              // 検索機能（実装例）
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('検索機能は開発中です')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SearchScreen(),
+                ),
               );
             },
           ),

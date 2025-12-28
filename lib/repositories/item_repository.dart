@@ -3,6 +3,16 @@ import '../models/item_model.dart';
 abstract class ItemRepository {
   Future<List<ItemModel>> getItems();
   Future<ItemModel?> getItemById(String id);
+  Future<List<ItemModel>> searchItems({
+    required String query,
+    String? category,
+    double? minPrice,
+    double? maxPrice,
+    double? minRating,
+    bool? isVegetarian,
+    bool? isSpicy,
+    List<String>? tags,
+  });
 }
 
 class ItemRepositoryImpl implements ItemRepository {
@@ -266,5 +276,70 @@ class ItemRepositoryImpl implements ItemRepository {
     } catch (e) {
       return null;
     }
+  }
+
+  @override
+  Future<List<ItemModel>> searchItems({
+    required String query,
+    String? category,
+    double? minPrice,
+    double? maxPrice,
+    double? minRating,
+    bool? isVegetarian,
+    bool? isSpicy,
+    List<String>? tags,
+  }) async {
+    // ネットワーク遅延をシミュレート（リアルタイム検索のため短めに設定）
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    var results = List<ItemModel>.from(_mockItems);
+
+    // テキスト検索（title, description, ingredients, tags）
+    if (query.isNotEmpty) {
+      final lowerQuery = query.toLowerCase();
+      results = results.where((item) {
+        return item.title.toLowerCase().contains(lowerQuery) ||
+            item.description.toLowerCase().contains(lowerQuery) ||
+            item.ingredients.any((ing) => ing.toLowerCase().contains(lowerQuery)) ||
+            item.tags.any((tag) => tag.toLowerCase().contains(lowerQuery));
+      }).toList();
+    }
+
+    // カテゴリーフィルター
+    if (category != null && category.isNotEmpty) {
+      results = results.where((item) => item.category == category).toList();
+    }
+
+    // 価格範囲フィルター
+    if (minPrice != null) {
+      results = results.where((item) => item.price >= minPrice).toList();
+    }
+    if (maxPrice != null) {
+      results = results.where((item) => item.price <= maxPrice).toList();
+    }
+
+    // 評価フィルター
+    if (minRating != null) {
+      results = results.where((item) => item.rating >= minRating).toList();
+    }
+
+    // ベジタリアンフィルター
+    if (isVegetarian != null && isVegetarian) {
+      results = results.where((item) => item.isVegetarian).toList();
+    }
+
+    // 辛さフィルター
+    if (isSpicy != null && isSpicy) {
+      results = results.where((item) => item.isSpicy).toList();
+    }
+
+    // タグフィルター
+    if (tags != null && tags.isNotEmpty) {
+      results = results.where((item) {
+        return tags.any((tag) => item.tags.contains(tag));
+      }).toList();
+    }
+
+    return results;
   }
 }

@@ -254,7 +254,7 @@ final class FilteredItemsProvider
   }
 }
 
-String _$filteredItemsHash() => r'd9d50d850ec79064a91588d1fc2913b6d0887f0f';
+String _$filteredItemsHash() => r'2e3fd4cab4fc09d09c6d1e9edfdf2cf944edd753';
 
 final class FilteredItemsFamily extends $Family
     with $FunctionalFamilyOverride<List<ItemModel>, String?> {
@@ -387,7 +387,7 @@ final class CategoriesProvider
   }
 }
 
-String _$categoriesHash() => r'194a2edd41f517651930790226ecbca370126f76';
+String _$categoriesHash() => r'c44ead025283ef235238f8b30e7fec6e3364692d';
 
 @ProviderFor(SelectedCategory)
 const selectedCategoryProvider = SelectedCategoryProvider._();
