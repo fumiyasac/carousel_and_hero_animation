@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/item_model.dart';
 import '../config/theme_config.dart';
+import '../providers/favorite_provider.dart';
 
-class DetailScreen extends StatelessWidget {
+class DetailScreen extends ConsumerWidget {
   final ItemModel item;
 
   const DetailScreen({
@@ -11,7 +13,7 @@ class DetailScreen extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       body: CustomScrollView(
@@ -417,29 +419,7 @@ class DetailScreen extends StatelessWidget {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('お気に入りに追加しました'),
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.favorite_border),
-                            label: const Text('保存'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppTheme.primaryColor,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                              ),
-                              side: const BorderSide(
-                                color: AppTheme.primaryColor,
-                                width: 2,
-                              ),
-                            ),
-                          ),
+                          child: _FavoriteButton(itemId: item.id),
                         ),
                       ],
                     ),
@@ -592,6 +572,75 @@ class _SectionTitle extends StatelessWidget {
         const SizedBox(width: 8),
         Text(title, style: AppTheme.heading3),
       ],
+    );
+  }
+}
+
+class _FavoriteButton extends ConsumerWidget {
+  final String itemId;
+
+  const _FavoriteButton({required this.itemId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isFavoriteAsync = ref.watch(isFavoriteProvider(itemId));
+
+    return isFavoriteAsync.when(
+      data: (isFav) {
+        return OutlinedButton.icon(
+          onPressed: () async {
+            await ref.read(favoriteProvider.notifier).toggleFavorite(itemId);
+
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(isFav ? 'お気に入りから削除しました' : 'お気に入りに追加しました'),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            }
+          },
+          icon: Icon(isFav ? Icons.favorite : Icons.favorite_border),
+          label: Text(isFav ? '保存済み' : '保存'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: isFav ? Colors.red : AppTheme.primaryColor,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+            ),
+            side: BorderSide(
+              color: isFav ? Colors.red : AppTheme.primaryColor,
+              width: 2,
+            ),
+          ),
+        );
+      },
+      loading: () => OutlinedButton.icon(
+        onPressed: null,
+        icon: const SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+        label: const Text('保存'),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+          ),
+        ),
+      ),
+      error: (_, __) => OutlinedButton.icon(
+        onPressed: null,
+        icon: const Icon(Icons.error_outline),
+        label: const Text('エラー'),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -6,6 +6,7 @@ import '../models/item_model.dart';
 import '../config/theme_config.dart';
 import 'detail_screen.dart';
 import 'search_screen.dart';
+import 'favorites_screen.dart';
 
 class CarouselListScreen extends ConsumerWidget {
   const CarouselListScreen({super.key});
@@ -47,6 +48,17 @@ class CarouselListScreen extends ConsumerWidget {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.favorite_border, color: AppTheme.textPrimary),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const FavoritesScreen(),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.search, color: AppTheme.textPrimary),
             onPressed: () {
