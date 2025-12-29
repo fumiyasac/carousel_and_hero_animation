@@ -1,5 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import '../models/item_model.dart';
 import '../config/theme_config.dart';
 import '../providers/favorite_provider.dart';
@@ -46,10 +50,100 @@ class DetailScreen extends ConsumerWidget {
                   ),
                   child: const Icon(Icons.share, color: AppTheme.textPrimary, size: 20),
                 ),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('共有機能は開発中です')),
-                  );
+                onPressed: () async {
+                  try {
+                    // ローディング表示
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Row(
+                            children: [
+                              SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              Text('画像を準備中...'),
+                            ],
+                          ),
+                          duration: Duration(seconds: 3),
+                        ),
+                      );
+                    }
+
+                    // 画像をダウンロード
+                    final response = await http.get(Uri.parse(item.imageUrl));
+                    if (response.statusCode == 200) {
+                      // 一時ディレクトリを取得
+                      final tempDir = await getTemporaryDirectory();
+                      final file = File('${tempDir.path}/share_image_${item.id}.jpg');
+
+                      // 画像を保存
+                      await file.writeAsBytes(response.bodyBytes);
+
+                      // シェアするテキスト
+                      final shareText = '''
+${item.title}
+
+${item.description}
+
+カテゴリー: ${item.category}
+評価: ${item.rating} (${item.reviewCount}件のレビュー)
+価格: ${item.formattedPrice}
+''';
+
+                      // 画像とテキストを一緒にシェア
+                      await Share.shareXFiles(
+                        [XFile(file.path)],
+                        text: shareText,
+                        subject: item.title,
+                      );
+
+                      // 一時ファイルを削除（シェア後）
+                      if (await file.exists()) {
+                        await file.delete();
+                      }
+                    } else {
+                      // 画像のダウンロードに失敗した場合はテキストのみシェア
+                      final shareText = '''
+${item.title}
+
+${item.description}
+
+カテゴリー: ${item.category}
+評価: ${item.rating} (${item.reviewCount}件のレビュー)
+価格: ${item.formattedPrice}
+''';
+                      await Share.share(
+                        shareText,
+                        subject: item.title,
+                      );
+                    }
+                  } catch (e) {
+                    // エラーが発生した場合はテキストのみシェア
+                    final shareText = '''
+${item.title}
+
+${item.description}
+
+カテゴリー: ${item.category}
+評価: ${item.rating} (${item.reviewCount}件のレビュー)
+価格: ${item.formattedPrice}
+''';
+                    await Share.share(
+                      shareText,
+                      subject: item.title,
+                    );
+                  } finally {
+                    // ローディングを非表示
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    }
+                  }
                 },
               ),
             ],
