@@ -3,16 +3,25 @@ import '../../models/item_model.dart';
 import '../../config/theme_config.dart';
 import '../detail_screen.dart';
 
-// リスト表示用カード
+// ========================================
+// Search Result List Card（検索結果リスト表示カード）
+// ========================================
+// 検索結果をリスト形式で表示するためのカードWidget
+// 横長のカードで、左に画像、右に情報を表示
 class SearchResultListCard extends StatelessWidget {
+  // 表示する料理アイテムのデータ
   final ItemModel item;
 
   const SearchResultListCard({super.key, required this.item});
 
   @override
   Widget build(BuildContext context) {
+    // GestureDetector: タップやスワイプなどのジェスチャーを検出するWidget
     return GestureDetector(
+      // onTap: タップされた時の処理
       onTap: () {
+        // Navigator.push(): 新しい画面に遷移
+        // MaterialPageRoute: Material Designの画面遷移アニメーション
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -20,7 +29,10 @@ class SearchResultListCard extends StatelessWidget {
           ),
         );
       },
+      // Hero: 画面遷移時に共有要素アニメーションを実現するWidget
+      // 遷移元と遷移先で同じtagを持つHeroが滑らかにアニメーションする
       child: Hero(
+        // tag: 一意な識別子（検索リスト画面用にsearch-listプレフィックスを付ける）
         tag: 'search-list-${item.id}',
         child: Container(
           margin: const EdgeInsets.symmetric(
@@ -132,15 +144,23 @@ class SearchResultListCard extends StatelessWidget {
   }
 }
 
-// グリッド表示用カード
+// ========================================
+// Search Result Grid Card（検索結果グリッド表示カード）
+// ========================================
+// 検索結果をグリッド形式で表示するためのカードWidget
+// 縦長のカードで、上に画像、下に情報を表示
+// 2列グリッドレイアウトで使用される
 class SearchResultGridCard extends StatelessWidget {
+  // 表示する料理アイテムのデータ
   final ItemModel item;
 
   const SearchResultGridCard({super.key, required this.item});
 
   @override
   Widget build(BuildContext context) {
+    // GestureDetector: タップ検出用Widget
     return GestureDetector(
+      // onTap: カードがタップされた時に詳細画面へ遷移
       onTap: () {
         Navigator.push(
           context,
@@ -149,7 +169,9 @@ class SearchResultGridCard extends StatelessWidget {
           ),
         );
       },
+      // Hero: 画面遷移アニメーション用Widget
       child: Hero(
+        // tag: グリッド表示用のユニークなタグ（リスト表示とは別のtagにする）
         tag: 'search-grid-${item.id}',
         child: Container(
           decoration: BoxDecoration(

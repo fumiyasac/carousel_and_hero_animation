@@ -5,6 +5,11 @@ import '../../models/search_filter_model.dart';
 import '../../providers/search_provider.dart';
 import '../../providers/item_provider.dart';
 
+// ========================================
+// Filter Bottom Sheet（フィルターボトムシート）
+// ========================================
+// 検索画面で表示されるフィルター設定用のボトムシート（画面下部から出現するパネル）
+// ConsumerStatefulWidget: Riverpod Providerを監視でき、かつ内部状態を持つWidget
 class FilterBottomSheet extends ConsumerStatefulWidget {
   const FilterBottomSheet({super.key});
 
@@ -12,24 +17,41 @@ class FilterBottomSheet extends ConsumerStatefulWidget {
   ConsumerState<FilterBottomSheet> createState() => _FilterBottomSheetState();
 }
 
+// ConsumerState: ConsumerStatefulWidgetの状態を管理するState
 class _FilterBottomSheetState extends ConsumerState<FilterBottomSheet> {
+  // _tempFilter: 一時的なフィルター設定（「適用」ボタンを押すまでは実際のフィルターに反映されない）
+  // late: 後で初期化することを明示（initStateで初期化）
   late SearchFilterModel _tempFilter;
+
+  // TextEditingController: 価格入力フィールドのコントローラー
+  // 最小価格と最大価格の2つの入力フィールドを管理
   final TextEditingController _minPriceController = TextEditingController();
   final TextEditingController _maxPriceController = TextEditingController();
 
+  // ========================================
+  // initState（初期化メソッド）
+  // ========================================
+  // Widgetが初めて作成された時に一度だけ呼ばれる
   @override
   void initState() {
     super.initState();
-    // 初期化は空のモデルから開始
+    // 初期状態は空のフィルター（何も設定されていない状態）
     _tempFilter = SearchFilterModel();
   }
 
+  // ========================================
+  // didChangeDependencies（依存関係変更時の処理）
+  // ========================================
+  // Widgetの依存関係が変更された時に呼ばれる
+  // 初回のbuild前と、InheritedWidgetの変更時に呼ばれる
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // 依存関係が変更されたら現在のフィルター状態を取得
+    // 現在のフィルター状態を取得して一時フィルターに設定
+    // これにより、既存のフィルター設定を引き継げる
     final currentFilter = ref.read(searchFilterProvider);
     _tempFilter = currentFilter;
+    // 価格フィルターがあればテキストフィールドに表示
     if (currentFilter.minPrice != null) {
       _minPriceController.text = currentFilter.minPrice!.toInt().toString();
     }
@@ -38,6 +60,11 @@ class _FilterBottomSheetState extends ConsumerState<FilterBottomSheet> {
     }
   }
 
+  // ========================================
+  // dispose（破棄メソッド）
+  // ========================================
+  // Widgetが破棄される時に呼ばれる
+  // TextEditingControllerなどのリソースを解放してメモリリークを防ぐ
   @override
   void dispose() {
     _minPriceController.dispose();
@@ -47,10 +74,15 @@ class _FilterBottomSheetState extends ConsumerState<FilterBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    // ref.watch(): Providerを監視（カテゴリー一覧を取得）
     final categories = ref.watch(categoriesProvider);
+    // MediaQuery.of(context): 画面サイズやデバイス情報を取得
     final screenHeight = MediaQuery.of(context).size.height;
 
+    // Container: ボトムシートのルートWidget
     return Container(
+      // constraints: サイズ制約を設定
+      // 画面の高さの75%を最大高さとして設定（画面全体を覆わないようにする）
       constraints: BoxConstraints(
         maxHeight: screenHeight * 0.75,
       ),
@@ -284,11 +316,17 @@ class _FilterBottomSheetState extends ConsumerState<FilterBottomSheet> {
                 ],
               ),
               child: SizedBox(
+                // double.infinity: 親Widgetの幅いっぱいに広げる
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    // フィルターを適用
+                    // ========================================
+                    // フィルター適用処理
+                    // ========================================
+                    // 一時フィルター（_tempFilter）を実際のフィルターProviderに反映
+                    // これにより検索結果が更新される
                     ref.read(searchFilterProvider.notifier).updateAll(_tempFilter);
+                    // Navigator.pop(): ボトムシートを閉じる
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(

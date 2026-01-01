@@ -6,19 +6,31 @@ import 'widgets/search_bar_widget.dart';
 import 'widgets/filter_bottom_sheet.dart';
 import 'widgets/search_result_card.dart';
 
+// ========================================
+// Search Screen（検索画面）
+// ========================================
+// アイテムの検索とフィルタリングを行う画面
+// ConsumerStatefulWidgetを使用（状態を持つWidget + Riverpod Provider監視）
+// StatefulWidgetとConsumerWidgetの機能を組み合わせたもの
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
 
+  // ConsumerStateを返す（通常のStateではない）
   @override
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
+// ConsumerState<T>を継承することでrefとStateの両方が使える
 class _SearchScreenState extends ConsumerState<SearchScreen> {
+  // TextEditingController: TextFieldの入力内容を管理するコントローラー
+  // Widgetの状態として保持することで、画面が再構築されても値を保持できる
   final TextEditingController _searchController = TextEditingController();
 
+  // dispose(): Widgetが破棄される際に呼ばれるライフサイクルメソッド
+  // TextEditingControllerなどのリソースを解放してメモリリークを防ぐ
   @override
   void dispose() {
-    _searchController.dispose();
+    _searchController.dispose(); // コントローラーを破棄
     super.dispose();
   }
 
@@ -93,12 +105,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         icon: Icons.tune,
                         isActive: filter.hasActiveFilters,
                         onTap: () {
+                          // ========================================
+                          // showModalBottomSheet（モーダルボトムシート表示）
+                          // ========================================
+                          // 画面下部から上にスライドして表示されるモーダルシート
                           showModalBottomSheet(
                             context: context,
-                            isScrollControlled: true,
-                            backgroundColor: Colors.transparent,
-                            enableDrag: true,
-                            isDismissible: true,
+                            isScrollControlled: true, // シート内のスクロールを有効化
+                            backgroundColor: Colors.transparent, // 背景を透明に（シート側で角丸を実現）
+                            enableDrag: true, // ドラッグで閉じることを許可
+                            isDismissible: true, // 外側タップで閉じることを許可
+                            // builder: シートの内容を構築する関数
                             builder: (context) => const FilterBottomSheet(),
                           );
                         },

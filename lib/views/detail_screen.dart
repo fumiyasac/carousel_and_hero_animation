@@ -8,7 +8,13 @@ import '../models/item_model.dart';
 import '../config/theme_config.dart';
 import '../providers/favorite_provider.dart';
 
+// ========================================
+// Detail Screen（アイテム詳細画面）
+// ========================================
+// 選択されたアイテムの詳細情報を表示する画面
+// ConsumerWidgetでRiverpod Providerを使用（お気に入り機能など）
 class DetailScreen extends ConsumerWidget {
+  // 表示するアイテムデータ
   final ItemModel item;
 
   const DetailScreen({
@@ -20,12 +26,21 @@ class DetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
+      // ========================================
+      // CustomScrollView（カスタムスクロールビュー）
+      // ========================================
+      // Sliverウィジェット（可変スクロール要素）を組み合わせたスクロールビュー
+      // SliverAppBar（伸縮するヘッダー）+ SliverList（コンテンツ）の組み合わせ
       body: CustomScrollView(
         slivers: [
-          // ヘッダー画像
+          // ========================================
+          // SliverAppBar（伸縮するアプリバー）
+          // ========================================
+          // スクロールに応じて伸縮するアプリバー
+          // 画像ヘッダーとしてよく使用される
           SliverAppBar(
-            expandedHeight: 400,
-            pinned: true,
+            expandedHeight: 400, // 展開時の高さ（最大400px）
+            pinned: true, // スクロール時に上部に固定（最小サイズで残る）
             backgroundColor: AppTheme.primaryColor,
             leading: IconButton(
               icon: Container(
@@ -147,7 +162,13 @@ ${item.description}
                 },
               ),
             ],
+            // FlexibleSpaceBar: SliverAppBarの伸縮する背景領域
             flexibleSpace: FlexibleSpaceBar(
+              // ========================================
+              // Hero アニメーション（詳細画面側）
+              // ========================================
+              // 前の画面から遷移してきた際に、同じtagを持つHeroウィジェット間でアニメーション
+              // 'item-${item.id}'のtagで、カルーセル/グリッドの画像と接続される
               background: Hero(
                 tag: 'item-${item.id}',
                 child: Stack(
@@ -670,6 +691,11 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
+// ========================================
+// Favorite Button（お気に入りボタンウィジェット）
+// ========================================
+// お気に入りの状態を表示し、トグル操作を行うボタン
+// ConsumerWidgetでRiverpod Providerを監視
 class _FavoriteButton extends ConsumerWidget {
   final String itemId;
 
@@ -677,12 +703,19 @@ class _FavoriteButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // ref.watch()でお気に入り状態を監視
+    // isFavoriteProvider(itemId)はパラメータ付きProviderの呼び出し
+    // 状態が変更されると自動的にWidgetが再構築される
     final isFavoriteAsync = ref.watch(isFavoriteProvider(itemId));
 
+    // AsyncValue.when()で非同期処理の状態に応じたUIを返す
     return isFavoriteAsync.when(
       data: (isFav) {
         return OutlinedButton.icon(
           onPressed: () async {
+            // ref.read()でProviderのNotifierメソッドを呼び出す
+            // アクション実行時はref.read()を使用（ref.watch()は使わない）
+            // toggleFavorite()でお気に入り状態を反転させる
             await ref.read(favoriteProvider.notifier).toggleFavorite(itemId);
 
             if (context.mounted) {

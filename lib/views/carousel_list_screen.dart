@@ -8,14 +8,24 @@ import 'detail_screen.dart';
 import 'search_screen.dart';
 import 'favorites_screen.dart';
 
+// ========================================
+// Carousel List Screen（カルーセル＋グリッド表示画面）
+// ========================================
+// アプリのメイン画面：上部にカルーセルスライダー、下部にアイテムグリッドを表示
+// ConsumerWidgetを継承することでRiverpodのProviderを監視できる
+// 注意: StatelessWidgetではなくConsumerWidgetを使う（Riverpod用）
 class CarouselListScreen extends ConsumerWidget {
   const CarouselListScreen({super.key});
 
+  // build()メソッドの引数にWidgetRefが追加される（ConsumerWidgetの特徴）
+  // WidgetRefを使用してProviderを監視（ref.watch）したり読み取り（ref.read）できる
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final itemsAsync = ref.watch(itemsProvider);
-    final categories = ref.watch(categoriesProvider);
-    final selectedCategory = ref.watch(selectedCategoryProvider);
+    // ref.watch()でProviderを監視
+    // Providerの値が変更されると、このWidgetが自動的に再構築される
+    final itemsAsync = ref.watch(itemsProvider); // AsyncValue<List<ItemModel>>
+    final categories = ref.watch(categoriesProvider); // List<String>
+    final selectedCategory = ref.watch(selectedCategoryProvider); // String?
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
@@ -82,12 +92,22 @@ class CarouselListScreen extends ConsumerWidget {
           ),
         ),
       ),
+      // ========================================
+      // AsyncValue.when() を使った状態別レンダリング
+      // ========================================
+      // AsyncValueは非同期処理の3つの状態を管理: loading, data, error
+      // when()メソッドで各状態に応じたUIを返す
       body: itemsAsync.when(
+        // data: データ取得成功時の処理
+        // items は Future<List<ItemModel>> から取得したデータ
         data: (items) {
+          // 選択されたカテゴリーでフィルタリング
+          // nullの場合は全アイテムを表示
           final filteredItems = selectedCategory == null
               ? items
               : items.where((item) => item.category == selectedCategory).toList();
 
+          // フィルタリング結果が空の場合の表示
           if (filteredItems.isEmpty) {
             return Center(
               child: Column(
@@ -121,11 +141,21 @@ class CarouselListScreen extends ConsumerWidget {
             ),
           );
         },
+        // ========================================
+        // loading: データ読み込み中の表示
+        // ========================================
+        // Future処理が完了していない間に表示されるUI
+        // CircularProgressIndicatorでローディング表示
         loading: () => const Center(
           child: CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
           ),
         ),
+        // ========================================
+        // error: エラー発生時の表示
+        // ========================================
+        // Future処理で例外が発生した際に表示されるUI
+        // error: エラーオブジェクト, stack: スタックトレース
         error: (error, stack) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -324,26 +354,36 @@ class _FeaturedCarousel extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: AppTheme.spacingMedium),
+        // ========================================
+        // CarouselSlider（スライダーウィジェット）
+        // ========================================
+        // carousel_sliderパッケージを使用した自動スクロールスライダー
         CarouselSlider.builder(
           itemCount: items.length,
+          // itemBuilder: 各スライドの内容を構築する関数
+          // index: 現在のインデックス, realIndex: 実際のアイテムインデックス
           itemBuilder: (context, index, realIndex) {
             final item = items[index];
             return _CarouselCard(item: item);
           },
+          // CarouselOptions: スライダーの詳細設定
           options: CarouselOptions(
-            height: 320,
-            aspectRatio: 16 / 9,
-            viewportFraction: 0.87,
-            initialPage: 0,
-            enableInfiniteScroll: true,
-            autoPlay: true,
-            autoPlayInterval: const Duration(seconds: 5),
-            autoPlayAnimationDuration: const Duration(milliseconds: 1000),
-            autoPlayCurve: Curves.easeInOutCubic,
-            enlargeCenterPage: true,
-            enlargeFactor: 0.18,
-            scrollDirection: Axis.horizontal,
+            height: 320, // スライダーの高さ
+            aspectRatio: 16 / 9, // アスペクト比
+            viewportFraction: 0.87, // 画面に表示される割合（0.87 = 87%）
+            initialPage: 0, // 初期表示ページ
+            enableInfiniteScroll: true, // 無限スクロールを有効化
+            autoPlay: true, // 自動再生を有効化
+            autoPlayInterval: const Duration(seconds: 5), // 5秒ごとに自動切り替え
+            autoPlayAnimationDuration: const Duration(milliseconds: 1000), // アニメーション時間
+            autoPlayCurve: Curves.easeInOutCubic, // アニメーションカーブ（滑らかな動き）
+            enlargeCenterPage: true, // 中央のページを拡大表示
+            enlargeFactor: 0.18, // 拡大率（0.18 = 18%拡大）
+            scrollDirection: Axis.horizontal, // 横方向スクロール
+            // ページ変更時のコールバック
             onPageChanged: (index, reason) {
+              // ref.read()でProviderのNotifierメソッドを呼び出す
+              // 現在のインデックスを更新（ドット表示などで使用）
               ref.read(currentCarouselIndexProvider.notifier).update(index);
             },
           ),
@@ -366,7 +406,9 @@ class _CarouselCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      // タップ時の処理: 詳細画面へ遷移
       onTap: () {
+        // Navigator.push()で新しい画面に遷移
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -374,7 +416,14 @@ class _CarouselCard extends StatelessWidget {
           ),
         );
       },
+      // ========================================
+      // Hero アニメーション
+      // ========================================
+      // Heroウィジェットで画像を囲むことで、画面遷移時に共有要素アニメーションを実現
+      // 遷移元と遷移先で同じtagを持つHeroウィジェットが自動的にアニメーションする
       child: Hero(
+        // tag: 一意な識別子（遷移先の画面でも同じtagを使用する必要がある）
+        // 'item-${item.id}'で各アイテムごとにユニークなtagを生成
         tag: 'item-${item.id}',
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 6),

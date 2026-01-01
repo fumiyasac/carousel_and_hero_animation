@@ -5,11 +5,19 @@ import '../providers/favorite_provider.dart';
 import '../models/item_model.dart';
 import 'detail_screen.dart';
 
+// ========================================
+// Favorites Screen（お気に入り画面）
+// ========================================
+// ユーザーがお気に入りに登録したアイテムの一覧を表示する画面
+// ConsumerWidget: Riverpod Providerを監視できるWidget
 class FavoritesScreen extends ConsumerWidget {
   const FavoritesScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // ref.watch(): Providerを監視し、値が変わると自動的に再描画
+    // favoriteItemsProvider: お気に入りアイテムのリストを返すProvider
+    // AsyncValue型で、loading/data/errorの3つの状態を持つ
     final favoritesAsync = ref.watch(favoriteItemsProvider);
 
     return Scaffold(
@@ -30,11 +38,22 @@ class FavoritesScreen extends ConsumerWidget {
           ),
         ),
         actions: [
+          // ========================================
+          // 全削除ボタン（条件付き表示）
+          // ========================================
+          // maybeWhen(): AsyncValueの状態に応じた処理（一部のケースのみ処理）
           favoritesAsync.maybeWhen(
+            // data: データ取得成功時の処理
+            // お気に入りが1件以上ある場合のみ削除ボタンを表示
             data: (items) => items.isNotEmpty
                 ? IconButton(
                     icon: const Icon(Icons.delete_outline, color: AppTheme.textPrimary),
                     onPressed: () async {
+                      // ========================================
+                      // 確認ダイアログの表示
+                      // ========================================
+                      // showDialog(): モーダルダイアログを表示
+                      // 戻り値: ユーザーの選択（true/false/null）
                       final confirm = await showDialog<bool>(
                         context: context,
                         builder: (context) => AlertDialog(
@@ -53,9 +72,14 @@ class FavoritesScreen extends ConsumerWidget {
                         ),
                       );
 
+                      // ユーザーが「削除」を選択した場合のみ処理を実行
+                      // context.mounted: このWidgetがまだツリーに存在するか確認（非同期処理後の安全性チェック）
                       if (confirm == true && context.mounted) {
+                        // ref.read(): Providerの値を一度だけ取得（アクション実行時はreadを使う）
+                        // clearAll(): 全てのお気に入りを削除するメソッド
                         await ref.read(favoriteProvider.notifier).clearAll();
                         if (context.mounted) {
+                          // SnackBar: 画面下部に一時的なメッセージを表示
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('お気に入りをすべて削除しました')),
                           );
@@ -63,13 +87,20 @@ class FavoritesScreen extends ConsumerWidget {
                       }
                     },
                   )
+                // SizedBox.shrink(): サイズ0の空Widget（何も表示しない）
                 : const SizedBox.shrink(),
+            // orElse: その他の状態（loading, error）の場合は何も表示しない
             orElse: () => const SizedBox.shrink(),
           ),
         ],
       ),
+      // ========================================
+      // body: AsyncValue.when()で状態別レンダリング
+      // ========================================
       body: favoritesAsync.when(
+        // data: データ取得成功時の処理
         data: (items) {
+          // お気に入りが空の場合の表示
           if (items.isEmpty) {
             return Center(
               child: Column(

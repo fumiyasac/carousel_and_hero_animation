@@ -1,8 +1,21 @@
 import '../models/item_model.dart';
 
+// ========================================
+// Item Repository（アイテムリポジトリ抽象クラス）
+// ========================================
+// アイテムデータの取得・検索機能を定義する抽象クラス
+// 実装クラスを差し替えることで、モックデータ・API・ローカルDBなどを切り替え可能
+// これにより、テストやモック実装が容易になる（Dependency Injection パターン）
 abstract class ItemRepository {
+  // 全アイテムを取得
   Future<List<ItemModel>> getItems();
+
+  // 指定IDのアイテムを取得（存在しない場合はnull）
   Future<ItemModel?> getItemById(String id);
+
+  // 複合条件でアイテムを検索
+  // query: テキスト検索（タイトル・説明・材料・タグから検索）
+  // その他: 各種フィルター条件（null の場合はその条件を無視）
   Future<List<ItemModel>> searchItems({
     required String query,
     String? category,
@@ -15,8 +28,17 @@ abstract class ItemRepository {
   });
 }
 
+// ========================================
+// Item Repository Implementation（実装クラス）
+// ========================================
+// ItemRepositoryの実装クラス
+// 現在はモックデータを使用しているが、本番環境ではAPI呼び出しに置き換え可能
 class ItemRepositoryImpl implements ItemRepository {
-  // サンプルデータ - 実際のアプリではAPIやローカルDBから取得
+  // ========================================
+  // モックデータ
+  // ========================================
+  // 開発用のサンプルデータ（12件の料理アイテム）
+  // 実際のアプリでは、REST APIやGraphQLから取得するデータに置き換える
   final List<ItemModel> _mockItems = [
     ItemModel(
       id: '1',
@@ -260,24 +282,40 @@ class ItemRepositoryImpl implements ItemRepository {
     ),
   ];
 
+  // ========================================
+  // 全アイテム取得メソッド
+  // ========================================
   @override
   Future<List<ItemModel>> getItems() async {
-    // ネットワーク遅延をシミュレート
+    // ネットワークAPIを呼び出している想定で遅延をシミュレート（800ms）
+    // 実際のアプリでは、ここでHTTPリクエストを実行する
+    // 例: final response = await http.get('https://api.example.com/items');
     await Future.delayed(const Duration(milliseconds: 800));
     return _mockItems;
   }
 
+  // ========================================
+  // ID指定アイテム取得メソッド
+  // ========================================
   @override
   Future<ItemModel?> getItemById(String id) async {
-    // ネットワーク遅延をシミュレート
+    // ネットワークAPIを呼び出している想定で遅延をシミュレート（300ms）
     await Future.delayed(const Duration(milliseconds: 300));
     try {
+      // firstWhere()は条件に一致する最初の要素を返す
+      // 一致する要素がない場合は例外をスローする
       return _mockItems.firstWhere((item) => item.id == id);
     } catch (e) {
+      // 該当アイテムが見つからない場合はnullを返す
       return null;
     }
   }
 
+  // ========================================
+  // 複合検索メソッド
+  // ========================================
+  // 複数の条件を組み合わせてアイテムを検索する
+  // 全ての条件はAND条件（すべての条件を満たすアイテムのみを返す）
   @override
   Future<List<ItemModel>> searchItems({
     required String query,
@@ -289,15 +327,25 @@ class ItemRepositoryImpl implements ItemRepository {
     bool? isSpicy,
     List<String>? tags,
   }) async {
-    // ネットワーク遅延をシミュレート（リアルタイム検索のため短めに設定）
+    // ネットワーク遅延をシミュレート（リアルタイム検索のため短めに500ms）
     await Future.delayed(const Duration(milliseconds: 500));
 
+    // 全アイテムのコピーを作成（元のリストを変更しないため）
+    // List.from()で新しいリストインスタンスを作成
     var results = List<ItemModel>.from(_mockItems);
 
-    // テキスト検索（title, description, ingredients, tags）
+    // ========================================
+    // テキスト検索（部分一致）
+    // ========================================
+    // タイトル、説明、材料、タグの中から検索クエリを含むアイテムを抽出
     if (query.isNotEmpty) {
+      // 大文字小文字を区別しないため、クエリを小文字に変換
       final lowerQuery = query.toLowerCase();
+      // where()でフィルタリング。条件に一致する要素のみを残す
       results = results.where((item) {
+        // contains()で部分一致を判定
+        // ||（OR）でいずれかの条件を満たせばtrue
+        // any()はリスト内の要素のいずれかが条件を満たすかチェック
         return item.title.toLowerCase().contains(lowerQuery) ||
             item.description.toLowerCase().contains(lowerQuery) ||
             item.ingredients.any((ing) => ing.toLowerCase().contains(lowerQuery)) ||
@@ -305,41 +353,61 @@ class ItemRepositoryImpl implements ItemRepository {
       }).toList();
     }
 
-    // カテゴリーフィルター
+    // ========================================
+    // カテゴリーフィルター（完全一致）
+    // ========================================
     if (category != null && category.isNotEmpty) {
       results = results.where((item) => item.category == category).toList();
     }
 
+    // ========================================
     // 価格範囲フィルター
+    // ========================================
+    // 最小価格フィルター（指定価格以上）
     if (minPrice != null) {
       results = results.where((item) => item.price >= minPrice).toList();
     }
+    // 最大価格フィルター（指定価格以下）
     if (maxPrice != null) {
       results = results.where((item) => item.price <= maxPrice).toList();
     }
 
+    // ========================================
     // 評価フィルター
+    // ========================================
+    // 指定された評価以上のアイテムのみを抽出
     if (minRating != null) {
       results = results.where((item) => item.rating >= minRating).toList();
     }
 
+    // ========================================
     // ベジタリアンフィルター
+    // ========================================
+    // trueの場合のみフィルタリング（ベジタリアン向けアイテムのみ）
     if (isVegetarian != null && isVegetarian) {
       results = results.where((item) => item.isVegetarian).toList();
     }
 
+    // ========================================
     // 辛さフィルター
+    // ========================================
+    // trueの場合のみフィルタリング（辛いアイテムのみ）
     if (isSpicy != null && isSpicy) {
       results = results.where((item) => item.isSpicy).toList();
     }
 
+    // ========================================
     // タグフィルター
+    // ========================================
+    // 指定されたタグのいずれかを持つアイテムを抽出（OR条件）
     if (tags != null && tags.isNotEmpty) {
       results = results.where((item) {
+        // any()で指定タグのいずれかがアイテムのタグに含まれるかチェック
         return tags.any((tag) => item.tags.contains(tag));
       }).toList();
     }
 
+    // 全てのフィルター条件を適用した結果を返す
     return results;
   }
 }
